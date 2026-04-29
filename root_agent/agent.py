@@ -1,19 +1,22 @@
 """
-agent.py — Root BigQuery Orchestrator Agent and ADK entry point.
+agent.py — Root Orchestrator Agent and ADK entry point.
 """
 
 from __future__ import annotations
+
 import os
+
+# Preview models (gemini-2.5-pro, gemini-2.5-flash) require the global endpoint.
+# Agent Engine deployment region (us-central1) is independent of this setting.
+os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'
+
 from .sub_agents.chart_agent import chart_agent
+
 from google.adk.agents import LlmAgent
 from google.adk.artifacts import GcsArtifactService
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.bigquery import BigQueryCredentialsConfig, BigQueryToolset
 from google.adk.tools.bigquery.config import BigQueryToolConfig, WriteMode
-
-# Preview models (e.g. gemini-3.1-flash-lite-preview) require the global endpoint.
-# Agent Engine deployment region (us-central1) is independent of this setting.
-os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'
 
 # ── Config ────────────────────────────────────────────────────────────────────
 _GCP_PROJECT_ID     = os.environ["GCP_PROJECT_ID"]
@@ -22,7 +25,7 @@ _BQ_DATASET_ID      = os.environ["BQ_DATASET_ID"]
 _BQ_LOCATION        = os.environ.get("BQ_LOCATION", "US")
 _BQ_MAX_ROWS        = int(os.environ.get("BQ_MAX_RESULT_ROWS", "200"))
 _BQ_MAX_BYTES       = int(os.environ.get("BQ_MAX_BYTES_BILLED", str(10 * 1024**3)))
-_GE_AUTH_ID         = os.environ["GE_AUTH_ID"]
+_GE_AUTH_ID         = os.environ.get("GE_AUTH_ID", "")
 _ORCHESTRATOR_MODEL = os.environ.get("ORCHESTRATOR_MODEL", "gemini-2.5-pro")
 
 # Parse bucket name from ARTIFACT_SERVICE_URI (e.g. gs://my-bucket/artifacts)
@@ -137,10 +140,14 @@ artifact_service = GcsArtifactService(bucket_name=_ARTIFACT_BUCKET)
 # ── BigQuery Toolset ──────────────────────────────────────────────────────────
 # Queries run as the authenticated end user via Gemini Enterprise OAuth.
 # The user's access token is injected into session state by Gemini Enterprise
-# under the GE_AUTH_ID key after the OAuth consent step
+# under the GE_AUTH_ID key after the OAuth consent step.
 _bq_toolset = BigQueryToolset(
+    # When GE_AUTH_ID is set (Agent Engine + Gemini Enterprise), queries run
+    # as the authenticated end user via the injected OAuth token.
+    # When GE_AUTH_ID is not set (local development), the BigQuery client
+    # falls back to Application Default Credentials (gcloud auth application-default login).
     credentials_config=BigQueryCredentialsConfig(
-        external_access_token_key=_GE_AUTH_ID,
+        external_access_token_key=_GE_AUTH_ID if _GE_AUTH_ID else None,
     ),
     bigquery_tool_config=BigQueryToolConfig(
         write_mode=WriteMode.BLOCKED,
