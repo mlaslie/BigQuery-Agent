@@ -61,23 +61,11 @@ python3 create_code_interpreter.py
 
 The script prompts for your project ID and region, creates the extension, and prints the resource name to add to your `.env` as `CODE_INTERPRETER_EXTENSION_NAME`.
 
-### 4. GCS bucket permissions
 
-Grant the Agent Engine service account write access to your artifact bucket:
-
-```bash
-gsutil iam ch \
-  serviceAccount:service-PROJECT_NUMBER@gcp-sa-discoveryengine.iam.gserviceaccount.com:roles/storage.objectAdmin \
-  gs://your-artifact-bucket-name
-```
 
 ## Run Locally
 
-```bash
-adk run .
-```
-
-Or with the ADK dev UI:
+Run with the ADK dev UI:
 
 ```bash
 adk web
@@ -97,17 +85,6 @@ After deploying, register the agent in Gemini Enterprise:
 3. Under **Authorizations**, add:
    - Authorization name: value of `GE_AUTH_ID` in your `.env`
 4. Add test users under agent permissions
-
-### Update an existing deployment
-
-```bash
-adk deploy agent_engine \
-  --project="YOUR_PROJECT_ID" \
-  --region="us-central1" \
-  --resource_id="YOUR_AGENT_ENGINE_RESOURCE_ID" \
-  --requirements_file="./requirements.txt" \
-  .
-```
 
 ## Pull and run on a new machine
 
