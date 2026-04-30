@@ -2,8 +2,8 @@
 """
 create_code_interpreter.py
 
-Creates a Vertex AI Code Interpreter Extension in the global location
-and prints the resource name to add to your .env file.
+Creates a Vertex AI Code Interpreter Extension and prints the resource name
+to add to your .env file as CODE_INTERPRETER_EXTENSION_NAME.
 
 Usage:
     python3 create_code_interpreter.py
@@ -17,6 +17,7 @@ try:
 except ImportError:
     print("ERROR: vertexai package not found. Run: pip install google-adk")
     sys.exit(1)
+
 
 def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -59,6 +60,7 @@ def main():
     except Exception as e:
         print(f"ERROR: Failed to create extension: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

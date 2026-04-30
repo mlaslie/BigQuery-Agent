@@ -1,20 +1,35 @@
 """
 chart_agent.py — Chart Sub-Agent definition.
 
+Exports `chart_agent` (LlmAgent) only.
+The AgentTool wrapper is created in agent.py where it is consumed.
+
+Prerequisites:
+  Create a Code Interpreter Extension once in the global location:
+
+  python3 -c "
+  import vertexai
+  from vertexai.preview.extensions import Extension
+  vertexai.init(project='YOUR_PROJECT_ID', location='global')
+  ext = Extension.from_hub('code_interpreter')
+  print(ext.gca_resource.name)
+  "
+
+  Set the output as CODE_INTERPRETER_EXTENSION_NAME in your .env file.
 """
 
 from __future__ import annotations
-import os
-from google.adk.agents import LlmAgent
-from google.adk.code_executors import VertexAiCodeExecutor
 
-# Preview models (e.g. gemini-3.1-flash-lite-preview) require the global endpoint.
-# Agent Engine deployment region (us-central1) is independent of this setting.
+import os
+
+# Preview models require the global endpoint — must be set before ADK imports.
 os.environ['GOOGLE_CLOUD_LOCATION'] = 'global'
+
+from google.adk.agents import LlmAgent
 
 # ── Config ────────────────────────────────────────────────────────────────────
 _CHART_AGENT_MODEL         = os.environ.get("CHART_AGENT_MODEL", "gemini-2.5-flash")
-_CODE_INTERPRETER_RESOURCE = os.environ["CODE_INTERPRETER_EXTENSION_NAME"]
+_CODE_INTERPRETER_RESOURCE = os.environ.get("CODE_INTERPRETER_EXTENSION_NAME", "")
 
 # ── Prompt ────────────────────────────────────────────────────────────────────
 _PROMPT = """
@@ -77,6 +92,19 @@ On FAILURE (code errored or did not print "CHART_SAVED"):
   STATUS:failure REASON:<brief plain-language explanation>
 """
 
+# ── Code Executor ────────────────────────────────────────────────────────────
+# Use VertexAiCodeExecutor when deployed on Agent Engine (CODE_INTERPRETER_EXTENSION_NAME set).
+# Fall back to BuiltInCodeExecutor for local development.
+if _CODE_INTERPRETER_RESOURCE:
+    from google.adk.code_executors import VertexAiCodeExecutor
+    _code_executor = VertexAiCodeExecutor(
+        resource_name=_CODE_INTERPRETER_RESOURCE,
+        stateful=True,
+    )
+else:
+    from google.adk.code_executors import BuiltInCodeExecutor
+    _code_executor = BuiltInCodeExecutor()
+
 # ── Agent ─────────────────────────────────────────────────────────────────────
 chart_agent = LlmAgent(
     name="chart_agent",
@@ -87,8 +115,5 @@ chart_agent = LlmAgent(
         "chart request. Returns STATUS:success or STATUS:failure as plain text. "
         "Only call this after the user has confirmed they want a chart."
     ),
-    code_executor=VertexAiCodeExecutor(
-        resource_name=_CODE_INTERPRETER_RESOURCE,
-        stateful=True,
-    ),
+    code_executor=_code_executor,
 )

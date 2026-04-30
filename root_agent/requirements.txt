@@ -1,9 +1,4 @@
 google-adk==1.28.1
-
-# Charting — used inside the Code Interpreter sandbox at runtime
-plotly==6.0.1
 matplotlib==3.10.1
 pandas==2.2.3
-kaleido==0.2.1
-
 python-dotenv==1.1.0
